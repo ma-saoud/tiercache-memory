@@ -1,4 +1,5 @@
 type MemoryStoreOptions = {
+  maxSize?: number;
   ttl?: number;
 };
 
