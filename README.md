@@ -46,13 +46,14 @@ await store.get("user:1");
 
 ## Options
 
-| Option | Type     | Description                                         |
-| ------ | -------- | --------------------------------------------------- |
-| `ttl`  | `number` | Default TTL in ms when `set` is called without one. |
+| Option    | Type     | Default | Description                                                            |
+| --------- | -------- | ------- | ---------------------------------------------------------------------- |
+| `maxSize` | `number` | `100`   | Maximum number of entries. When full, `set` evicts the least-read key. |
+| `ttl`     | `number` | none    | Default TTL in ms when `set` is called without one.                    |
 
 `store.size` returns the current entry count (may include expired, not-yet-read entries).
 
-The store has no size limit, so it grows until entries expire or are deleted. Set a `ttl` if you cache many distinct keys.
+The store holds at most `maxSize` entries. When it is full, adding a new key evicts the key with the fewest `get` calls. Overwriting a key that is already stored doesn't evict anything. Expired entries are only removed when they are read, so until then they still take up a slot.
 
 ## Store interface
 
