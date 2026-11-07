@@ -1,6 +1,7 @@
 type MemoryStoreOptions = {
   maxSize?: number;
   ttl?: number;
+  sweepIntervalMs?: number;
 };
 
 type Entry = { value: unknown; ttl?: number };

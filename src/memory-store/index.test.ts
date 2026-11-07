@@ -117,4 +117,88 @@ describe("MemoryStore", () => {
       expect(await store.get("e")).toBe(5);
     });
   });
+
+  describe("sweepIntervalMs", () => {
+    it("accepts values from 10 seconds to 1 hour", async () => {
+      for (const sweepIntervalMs of [10_000, 60_000, 3_600_000]) {
+        const store = new MemoryStore({ sweepIntervalMs });
+        await store.dispose();
+      }
+    });
+
+    it("throws a RangeError outside 10 seconds to 1 hour", () => {
+      for (const sweepIntervalMs of [
+        0,
+        -1,
+        9_999,
+        3_600_001,
+        Number.NaN,
+        Number.POSITIVE_INFINITY,
+      ]) {
+        expect(() => new MemoryStore({ sweepIntervalMs })).toThrow(RangeError);
+      }
+    });
+
+    it("removes expired entries every sweepIntervalMs without reads", async () => {
+      vi.useFakeTimers();
+      const store = new MemoryStore({ sweepIntervalMs: 10_000 });
+      await store.set("short", 1, 5_000);
+      await store.set("long", 2, 15_000);
+      vi.advanceTimersByTime(10_000);
+      expect(store.size).toBe(1);
+      vi.advanceTimersByTime(10_000);
+      expect(store.size).toBe(0);
+      await store.dispose();
+    });
+
+    it("sweeps every hour by default", async () => {
+      vi.useFakeTimers();
+      const store = new MemoryStore();
+      await store.set("a", 1, 1_000);
+      vi.advanceTimersByTime(3_600_000 - 1);
+      expect(store.size).toBe(1);
+      vi.advanceTimersByTime(1);
+      expect(store.size).toBe(0);
+      await store.dispose();
+    });
+  });
+
+  describe("prune", () => {
+    it("removes expired entries and returns how many it removed", async () => {
+      vi.useFakeTimers();
+      const store = new MemoryStore();
+      await store.set("a", 1, 1_000);
+      await store.set("b", 2, 1_000);
+      await store.set("c", 3, 5_000);
+      vi.advanceTimersByTime(1_000);
+      expect(store.prune()).toEqual({ removedItems: 2 });
+      expect(store.size).toBe(1);
+      expect(await store.get("c")).toBe(3);
+      expect(store.prune()).toEqual({ removedItems: 0 });
+    });
+
+    it("keeps the store within maxSize after pruning", async () => {
+      vi.useFakeTimers();
+      const store = new MemoryStore({ maxSize: 2 });
+      await store.set("a", 1, 1_000);
+      await store.set("b", 2);
+      vi.advanceTimersByTime(1_000);
+      store.prune();
+      await store.set("c", 3);
+      await store.set("d", 4);
+      expect(store.size).toBe(2);
+    });
+  });
+
+  describe("dispose", () => {
+    it("stops the sweep timer and removes all entries", async () => {
+      vi.useFakeTimers();
+      const store = new MemoryStore();
+      await store.set("a", 1);
+      expect(vi.getTimerCount()).toBe(1);
+      await store.dispose();
+      expect(vi.getTimerCount()).toBe(0);
+      expect(store.size).toBe(0);
+    });
+  });
 });

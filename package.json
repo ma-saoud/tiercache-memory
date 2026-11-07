@@ -47,7 +47,7 @@
     "check": "biome check --write .",
     "typecheck": "tsc --noEmit",
     "prepare": "husky",
-    "prepublishOnly": "pnpm typecheck && pnpm build"
+    "prepublishOnly": "pnpm typecheck && pnpm lint && pnpm test && pnpm build"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.2",
