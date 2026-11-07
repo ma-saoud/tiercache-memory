@@ -1,6 +1,6 @@
 {
   "name": "@tiercache/memory",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "In-memory store for tiercache: per-key TTL expiry, zero dependencies.",
   "type": "module",
   "main": "./dist/index.js",
