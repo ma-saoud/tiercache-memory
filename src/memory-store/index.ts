@@ -77,8 +77,6 @@ export class MemoryStore implements Store {
 
     this.updateLTU(key);
 
-    this.cache.delete(key);
-    this.cache.set(key, entry);
     return entry.value as T;
   }
 
