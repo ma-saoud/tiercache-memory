@@ -59,6 +59,15 @@ The store holds at most `maxSize` entries. When it is full, adding a new key evi
 
 An entry expires after the `ttlMs` passed to `set`. If none is passed, it uses the `ttl` option, and if that isn't set either, it expires after 1 day.
 
+A TTL must be a positive number of milliseconds, or `Infinity` for an entry that never expires:
+
+```ts
+await store.set("config", data, Infinity); // never expires
+await store.set("user:1", user, 0); // rejects with a RangeError
+```
+
+`0`, negative numbers, `NaN` and non-numbers are rejected with a `RangeError`, both by `set` and by the `ttl` constructor option. A rejected `set` doesn't change the store.
+
 Expired entries are removed in three ways:
 - **On read:** `get` on an expired key removes it and returns `undefined`.
 - **Background sweep:** every `sweepIntervalMs`, the store removes all its expired entries. The timer is `unref()`'d, so it never keeps a Node process running.

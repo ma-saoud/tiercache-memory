@@ -163,6 +163,71 @@ describe("MemoryStore", () => {
     });
   });
 
+  describe("ttl validation", () => {
+    const invalidTtls: unknown[] = [
+      0,
+      -1,
+      Number.NaN,
+      Number.NEGATIVE_INFINITY,
+      "5000",
+    ];
+
+    it("rejects set with a ttl that isn't positive or Infinity", async () => {
+      const store = new MemoryStore();
+      for (const ttl of invalidTtls) {
+        await expect(store.set("a", 1, ttl as number)).rejects.toThrow(
+          RangeError,
+        );
+      }
+      expect(store.size).toBe(0);
+    });
+
+    it("throws in the constructor for an invalid ttl option", () => {
+      for (const ttl of invalidTtls) {
+        expect(() => new MemoryStore({ ttl: ttl as number })).toThrow(
+          RangeError,
+        );
+      }
+    });
+
+    it("doesn't evict anything when set is rejected", async () => {
+      const store = new MemoryStore({ maxSize: 2 });
+      await store.set("a", 1);
+      await store.set("b", 2);
+      await expect(store.set("c", 3, 0)).rejects.toThrow(RangeError);
+      expect(store.size).toBe(2);
+      expect(await store.get("a")).toBe(1);
+      expect(await store.get("b")).toBe(2);
+    });
+
+    it("never expires an entry set with Infinity", async () => {
+      vi.useFakeTimers();
+      const store = new MemoryStore({ ttl: 1_000 });
+      await store.set("forever", 1, Number.POSITIVE_INFINITY);
+      vi.advanceTimersByTime(365 * 86_400_000);
+      expect(await store.get("forever")).toBe(1);
+      await store.dispose();
+    });
+
+    it("accepts Infinity as the default ttl option", async () => {
+      vi.useFakeTimers();
+      const store = new MemoryStore({ ttl: Number.POSITIVE_INFINITY });
+      await store.set("forever", 1);
+      vi.advanceTimersByTime(365 * 86_400_000);
+      expect(await store.get("forever")).toBe(1);
+      await store.dispose();
+    });
+
+    it("accepts fractional ms", async () => {
+      vi.useFakeTimers();
+      const store = new MemoryStore();
+      await store.set("a", 1, 1.5);
+      expect(await store.get("a")).toBe(1);
+      vi.advanceTimersByTime(2);
+      expect(await store.get("a")).toBeUndefined();
+    });
+  });
+
   describe("prune", () => {
     it("removes expired entries and returns how many it removed", async () => {
       vi.useFakeTimers();

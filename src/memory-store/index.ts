@@ -1,5 +1,5 @@
 import type { Entry, MemoryStoreOptions, Store } from "../types/index.js";
-import { isExpired } from "../utils/index.js";
+import { assertValidTtl, isExpired } from "../utils/index.js";
 
 const DEFAULT_TTL = 1000 * 60 * 60 * 24;
 const MIN_SWEEP_INTERVAL_MS = 1000 * 10; // 10 seconds
@@ -13,6 +13,7 @@ export class MemoryStore implements Store {
   private sweepTimer: NodeJS.Timeout | null = null;
 
   constructor(private options: MemoryStoreOptions = {}) {
+    assertValidTtl(this.options.ttl, "options.ttl");
     this.maxSize = this.options.maxSize ?? this.maxSize;
 
     const sweepIntervalMs =
@@ -81,6 +82,7 @@ export class MemoryStore implements Store {
   }
 
   async set<T>(key: string, value: T, ttlMs?: number): Promise<void> {
+    assertValidTtl(ttlMs, "ttlMs");
     const ttl = ttlMs ?? this.options.ttl ?? DEFAULT_TTL;
 
     if (!this.cache.has(key)) {
@@ -93,7 +95,7 @@ export class MemoryStore implements Store {
 
     this.cache.set(key, {
       value,
-      ttl: ttl ? Date.now() + ttl : undefined,
+      ttl: ttl === Infinity ? undefined : Date.now() + ttl,
     });
   }
 
