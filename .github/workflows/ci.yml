@@ -20,9 +20,9 @@ jobs:
       matrix:
         node: [22, 24]
     steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
           cache: pnpm
@@ -32,7 +32,7 @@ jobs:
       - run: pnpm test
       - run: pnpm build
       - if: matrix.node == 24
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist
@@ -48,11 +48,14 @@ jobs:
       matrix:
         node: [18, 20, 22, 24]
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
-      - uses: actions/download-artifact@v5
+          # This job only runs plain Node and never installs pnpm, so don't
+          # let setup-node turn on package-manager caching from package.json.
+          package-manager-cache: false
+      - uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist
