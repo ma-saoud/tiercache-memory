@@ -1,5 +1,7 @@
 # @tiercache/memory
 
+[![CI](https://github.com/ma-saoud/tiercache-memory/actions/workflows/ci.yml/badge.svg)](https://github.com/ma-saoud/tiercache-memory/actions/workflows/ci.yml)
+
 In-memory store for [tiercache](https://github.com/ma-saoud/tiercache). Zero dependencies, per-key TTL.
 
 Unlike a `setTimeout`-based cache, there's no timer per key. Expired entries are removed when they're read, and one background sweep per store (hourly by default) removes the ones nobody reads again.
