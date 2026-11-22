@@ -5,9 +5,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-22
+
 ### Added
 
 - `LICENSE` file (MIT), this changelog and a CI workflow.
+
+### Changed
+
+- README rewritten for standalone use, with tiercache usage moved to its own section.
 
 ## [0.4.0] - 2026-11-22
 
@@ -50,7 +56,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - `MemoryStore` with `get`, `set`, `delete`, `clear` and `size`, and per-key TTL that is checked on read.
 
-[Unreleased]: https://github.com/ma-saoud/tiercache-memory/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/ma-saoud/tiercache-memory/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/ma-saoud/tiercache-memory/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/ma-saoud/tiercache-memory/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/ma-saoud/tiercache-memory/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/ma-saoud/tiercache-memory/compare/v0.2.0...v0.3.0
