@@ -1,5 +1,9 @@
 import type { Entry, MemoryStoreOptions, Store } from "../types/index.js";
-import { assertValidTtl, isExpired } from "../utils/index.js";
+import {
+  assertValidMaxSize,
+  assertValidTtl,
+  isExpired,
+} from "../utils/index.js";
 
 const DEFAULT_TTL = 1000 * 60 * 60 * 24;
 const MIN_SWEEP_INTERVAL_MS = 1000 * 10; // 10 seconds
@@ -14,6 +18,7 @@ export class MemoryStore implements Store {
 
   constructor(private options: MemoryStoreOptions = {}) {
     assertValidTtl(this.options.ttl, "options.ttl");
+    assertValidMaxSize(this.options.maxSize, "options.maxSize");
     this.maxSize = this.options.maxSize ?? this.maxSize;
 
     const sweepIntervalMs =
@@ -37,14 +42,19 @@ export class MemoryStore implements Store {
   }
 
   private evictIfNeeded(): void {
-    if (this.cache.size >= this.maxSize) {
-      const ltuKey = [...this.ltuMap.entries()].sort(
-        (a, b) => a[1] - b[1],
-      )[0]?.[0];
-      if (ltuKey) {
-        this.cache.delete(ltuKey);
-        this.ltuMap.delete(ltuKey);
-      }
+    if (this.cache.size < this.maxSize) return;
+
+    // Expired entries go first, so a live one is only evicted if needed.
+    this.prune();
+    if (this.cache.size < this.maxSize) return;
+
+    const ltuKey = [...this.ltuMap.entries()].sort(
+      (a, b) => a[1] - b[1],
+    )[0]?.[0];
+    // "" is a valid key, so compare with undefined.
+    if (ltuKey !== undefined) {
+      this.cache.delete(ltuKey);
+      this.ltuMap.delete(ltuKey);
     }
   }
 

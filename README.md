@@ -30,15 +30,15 @@ await cache.clear();
 
 ## API
 
-| Method                   | Description                                                                                             |
-| ------------------------ | ------------------------------------------------------------------------------------------------------- |
-| `get(key)`               | Returns the value, or `undefined` if the key is missing or expired. Any other value, including `null`, is a hit. |
-| `set(key, value, ttlMs?)` | Stores a value. Without `ttlMs`, the `ttl` option is used.                                              |
-| `delete(key)`            | Removes one key.                                                                                        |
-| `clear()`                | Removes all keys.                                                                                       |
-| `size`                   | Number of entries, which may include expired entries that haven't been removed yet.                     |
-| `prune()`                | Removes all expired entries now and returns `{ removedItems }`.                                          |
-| `dispose()`              | Stops the background sweep and removes all entries.                                                     |
+| Method                    | Description                                                                                                      |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `get(key)`                | Returns the value, or `undefined` if the key is missing or expired. Any other value, including `null`, is a hit. |
+| `set(key, value, ttlMs?)` | Stores a value. Without `ttlMs`, the `ttl` option is used.                                                       |
+| `delete(key)`             | Removes one key.                                                                                                 |
+| `clear()`                 | Removes all keys.                                                                                                |
+| `size`                    | Number of entries, which may include expired entries that haven't been removed yet.                              |
+| `prune()`                 | Removes all expired entries now and returns `{ removedItems }`.                                                  |
+| `dispose()`               | Stops the background sweep and removes all entries.                                                              |
 
 `get`, `set`, `delete`, `clear` and `dispose` return promises.
 
@@ -54,13 +54,13 @@ const cache = new MemoryStore({
 
 | Option            | Type     | Default              | Description                                                                                                                                                               |
 | ----------------- | -------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `maxSize`         | `number` | `100`                | Maximum number of entries. When full, `set` evicts the least-used key.                                                                                                    |
+| `maxSize`         | `number` | `100`                | Maximum number of entries: a positive integer, or `Infinity` for no limit. Anything else throws a `RangeError`.                                                           |
 | `ttl`             | `number` | `86_400_000` (1 day) | Default TTL in ms when `set` is called without one.                                                                                                                       |
 | `sweepIntervalMs` | `number` | `3_600_000` (1 hour) | How often, in ms, the background sweep removes expired entries. Must be between `10_000` (10s) and `3_600_000` (1 hour), otherwise the constructor throws a `RangeError`. |
 
 ## Size limit
 
-The store holds at most `maxSize` entries. When it is full, adding a new key evicts the least-used key: every `set` of a key and every `get` that finds it counts as one use. Overwriting a key that is already stored doesn't evict anything.
+The store holds at most `maxSize` entries. When it is full, adding a new key first removes expired entries. If that frees no space, it evicts the least-used key: every `set` of a key and every `get` that finds it counts as one use. Overwriting a key that is already stored doesn't evict anything.
 
 ## Expiry
 
@@ -75,9 +75,10 @@ await cache.set("user:1", user, 0); // rejects with a RangeError
 
 `0`, negative numbers, `NaN` and non-numbers are rejected with a `RangeError`, both by `set` and by the `ttl` option. A rejected `set` doesn't change the store.
 
-Expired entries are removed in three ways:
+Expired entries are removed in four ways:
 - **On read:** `get` on an expired key removes it and returns `undefined`.
 - **Background sweep:** every `sweepIntervalMs`, the store removes all its expired entries. The timer is `unref()`'d, so it never keeps a Node process running.
+- **When full:** `set` of a new key removes all expired entries before it evicts a live one.
 - **Manually:** `cache.prune()` removes all expired entries right away and returns how many it removed:
 
 ```ts

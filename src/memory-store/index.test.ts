@@ -118,6 +118,79 @@ describe("MemoryStore", () => {
     });
   });
 
+  describe("eviction", () => {
+    it("evicts the empty-string key like any other key", async () => {
+      const store = new MemoryStore({ maxSize: 2 });
+      await store.set("", 1);
+      await store.set("a", 2);
+      await store.get("a");
+      await store.set("b", 3);
+      expect(store.size).toBe(2);
+      expect(await store.get("")).toBeUndefined();
+      expect(await store.get("a")).toBe(2);
+      expect(await store.get("b")).toBe(3);
+    });
+
+    it("removes expired entries before evicting a live one", async () => {
+      vi.useFakeTimers();
+      const store = new MemoryStore({ maxSize: 2 });
+      await store.set("expired", 1, 1_000);
+      for (let i = 0; i < 3; i++) await store.get("expired");
+      await store.set("live", 2);
+      vi.advanceTimersByTime(1_000);
+      await store.set("new", 3);
+      expect(store.size).toBe(2);
+      expect(await store.get("live")).toBe(2);
+      expect(await store.get("new")).toBe(3);
+    });
+
+    it("still evicts the least-used key when nothing is expired", async () => {
+      vi.useFakeTimers();
+      const store = new MemoryStore({ maxSize: 2 });
+      await store.set("a", 1, 1_000);
+      await store.set("b", 2, 1_000);
+      await store.get("a");
+      vi.advanceTimersByTime(999);
+      await store.set("c", 3);
+      expect(store.size).toBe(2);
+      expect(await store.get("a")).toBe(1);
+      expect(await store.get("b")).toBeUndefined();
+    });
+  });
+
+  describe("maxSize validation", () => {
+    it("throws a RangeError unless maxSize is a positive integer or Infinity", () => {
+      const invalidSizes: unknown[] = [
+        0,
+        -1,
+        1.5,
+        Number.NaN,
+        Number.NEGATIVE_INFINITY,
+        "10",
+        null,
+      ];
+      for (const maxSize of invalidSizes) {
+        expect(() => new MemoryStore({ maxSize: maxSize as number })).toThrow(
+          RangeError,
+        );
+      }
+    });
+
+    it("accepts 1", async () => {
+      const store = new MemoryStore({ maxSize: 1 });
+      await store.set("a", 1);
+      await store.set("b", 2);
+      expect(store.size).toBe(1);
+      expect(await store.get("b")).toBe(2);
+    });
+
+    it("accepts Infinity for a store without a size limit", async () => {
+      const store = new MemoryStore({ maxSize: Number.POSITIVE_INFINITY });
+      for (let i = 0; i < 500; i++) await store.set(`k${i}`, i);
+      expect(store.size).toBe(500);
+    });
+  });
+
   describe("sweepIntervalMs", () => {
     it("accepts values from 10 seconds to 1 hour", async () => {
       for (const sweepIntervalMs of [10_000, 60_000, 3_600_000]) {

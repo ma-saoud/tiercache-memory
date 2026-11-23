@@ -5,6 +5,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-11-23
+
+### Breaking
+
+- The constructor now throws a `RangeError` when `maxSize` is not a positive integer or `Infinity`. Before, `0`, negative numbers, decimals, `NaN` and non-numbers were silently accepted.
+
+### Fixed
+
+- A store containing the empty-string key `""` no longer grows past `maxSize`.
+- When the store is full, expired entries are removed before a live entry is evicted.
+
 ## [0.4.1] - 2026-11-22
 
 ### Added
@@ -56,7 +67,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - `MemoryStore` with `get`, `set`, `delete`, `clear` and `size`, and per-key TTL that is checked on read.
 
-[Unreleased]: https://github.com/ma-saoud/tiercache-memory/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/ma-saoud/tiercache-memory/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/ma-saoud/tiercache-memory/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/ma-saoud/tiercache-memory/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/ma-saoud/tiercache-memory/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/ma-saoud/tiercache-memory/compare/v0.3.0...v0.3.1
