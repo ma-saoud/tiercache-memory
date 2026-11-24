@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/ma-saoud/tiercache-memory/actions/workflows/ci.yml/badge.svg)](https://github.com/ma-saoud/tiercache-memory/actions/workflows/ci.yml)
 
-A small, fast in-memory cache for Node.js with per-key TTL and a size limit. Zero dependencies.
+A small, fast in-memory LRU cache for Node.js with per-key TTL and a size limit. Zero dependencies.
 
 There's no timer per key. Expired entries are removed when they're read, and one background sweep per store (hourly by default) removes the ones nobody reads again.
 
@@ -60,7 +60,7 @@ const cache = new MemoryStore({
 
 ## Size limit
 
-The store holds at most `maxSize` entries. When it is full, adding a new key first removes expired entries. If that frees no space, it evicts the least-used key: every `set` of a key and every `get` that finds it counts as one use. Overwriting a key that is already stored doesn't evict anything.
+The store holds at most `maxSize` entries. When it is full, adding a new key first removes expired entries. If that frees no space, it evicts the least recently used (LRU) key: the one that has gone longest without a `set`, or a `get` that finds it. Reading a key doesn't extend its TTL. Overwriting a key that is already stored doesn't evict anything.
 
 ## Expiry
 

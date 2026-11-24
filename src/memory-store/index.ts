@@ -12,8 +12,8 @@ const DEFAULT_SWEEP_INTERVAL_MS = MAX_SWEEP_INTERVAL_MS;
 
 export class MemoryStore implements Store {
   private cache = new Map<string, Entry>();
+  private nextExpiry = Infinity;
   private maxSize = 100;
-  private ltuMap = new Map<string, number>();
   private sweepTimer: NodeJS.Timeout | null = null;
 
   constructor(private options: MemoryStoreOptions = {}) {
@@ -45,33 +45,27 @@ export class MemoryStore implements Store {
     if (this.cache.size < this.maxSize) return;
 
     // Expired entries go first, so a live one is only evicted if needed.
-    this.prune();
-    if (this.cache.size < this.maxSize) return;
-
-    const ltuKey = [...this.ltuMap.entries()].sort(
-      (a, b) => a[1] - b[1],
-    )[0]?.[0];
-    // "" is a valid key, so compare with undefined.
-    if (ltuKey !== undefined) {
-      this.cache.delete(ltuKey);
-      this.ltuMap.delete(ltuKey);
+    if (Date.now() >= this.nextExpiry) {
+      this.prune();
+      if (this.cache.size < this.maxSize) return;
     }
-  }
 
-  private updateLTU(key: string): void {
-    const usedCount = this.ltuMap.get(key) ?? 0;
-    this.ltuMap.set(key, usedCount + 1);
+    const oldest = this.cache.keys().next();
+    if (!oldest.done) this.cache.delete(oldest.value);
   }
 
   prune(): { removedItems: number } {
     let removedItems = 0;
+    let nextExpiry = Infinity;
     for (const [key, entry] of this.cache.entries()) {
       if (isExpired(entry)) {
         this.cache.delete(key);
-        this.ltuMap.delete(key);
         removedItems++;
+      } else if (entry.ttl !== undefined) {
+        nextExpiry = Math.min(nextExpiry, entry.ttl);
       }
     }
+    this.nextExpiry = nextExpiry;
     return { removedItems };
   }
 
@@ -82,11 +76,11 @@ export class MemoryStore implements Store {
 
     if (isExpired(entry)) {
       this.cache.delete(key);
-      this.ltuMap.delete(key);
       return undefined;
     }
 
-    this.updateLTU(key);
+    this.cache.delete(key);
+    this.cache.set(key, entry);
 
     return entry.value as T;
   }
@@ -99,29 +93,27 @@ export class MemoryStore implements Store {
       this.evictIfNeeded();
     }
 
-    this.updateLTU(key);
-
     this.cache.delete(key);
 
-    this.cache.set(key, {
-      value,
-      ttl: ttl === Infinity ? undefined : Date.now() + ttl,
-    });
+    const expiresAt = ttl === Infinity ? undefined : Date.now() + ttl;
+    this.cache.set(key, { value, ttl: expiresAt });
+    if (expiresAt !== undefined) {
+      this.nextExpiry = Math.min(this.nextExpiry, expiresAt);
+    }
   }
 
   async delete(key: string): Promise<void> {
     this.cache.delete(key);
-    this.ltuMap.delete(key);
   }
 
   async clear(): Promise<void> {
     this.cache.clear();
-    this.ltuMap.clear();
+    this.nextExpiry = Infinity;
   }
 
   async dispose(): Promise<void> {
     clearInterval(this.sweepTimer!);
     this.cache.clear();
-    this.ltuMap.clear();
+    this.nextExpiry = Infinity;
   }
 }

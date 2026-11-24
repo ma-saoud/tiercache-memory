@@ -5,6 +5,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Changed
+
+- A full store now evicts the least recently used key (LRU) instead of the least frequently used one. New keys are no longer evicted right away in favor of old popular ones.
+- Adding a key to a full store no longer sorts all entries, and scans for expired ones only when one may have expired.
+
 ## [0.4.2] - 2026-11-23
 
 ### Breaking

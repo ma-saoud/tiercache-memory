@@ -43,15 +43,15 @@ describe("MemoryStore", () => {
       expect(store.size).toBe(3);
     });
 
-    it("evicts the least-read key when full", async () => {
+    it("evicts the least recently used key when full", async () => {
       const store = new MemoryStore({ maxSize: 2 });
       await store.set("a", 1);
       await store.set("b", 2);
       for (const key of ["a", "a", "b"]) await store.get(key);
       await store.set("c", 3);
       expect(store.size).toBe(2);
-      expect(await store.get("a")).toBe(1);
-      expect(await store.get("b")).toBeUndefined();
+      expect(await store.get("a")).toBeUndefined();
+      expect(await store.get("b")).toBe(2);
       expect(await store.get("c")).toBe(3);
     });
 
@@ -144,7 +144,7 @@ describe("MemoryStore", () => {
       expect(await store.get("new")).toBe(3);
     });
 
-    it("still evicts the least-used key when nothing is expired", async () => {
+    it("still evicts the least recently used key when nothing is expired", async () => {
       vi.useFakeTimers();
       const store = new MemoryStore({ maxSize: 2 });
       await store.set("a", 1, 1_000);
@@ -155,6 +155,73 @@ describe("MemoryStore", () => {
       expect(store.size).toBe(2);
       expect(await store.get("a")).toBe(1);
       expect(await store.get("b")).toBeUndefined();
+    });
+  });
+
+  describe("least recently used order", () => {
+    it("keeps a popular key after it is updated", async () => {
+      const store = new MemoryStore({ maxSize: 2 });
+      await store.set("hot", 1);
+      for (let i = 0; i < 50; i++) await store.get("hot");
+      await store.set("cold", 1);
+      await store.set("hot", 2);
+      await store.set("new", 3);
+      expect(await store.get("hot")).toBe(2);
+      expect(await store.get("new")).toBe(3);
+      expect(await store.get("cold")).toBeUndefined();
+    });
+
+    it("keeps a new key over an old popular one that is no longer used", async () => {
+      const store = new MemoryStore({ maxSize: 2 });
+      await store.set("old", 1);
+      for (let i = 0; i < 50; i++) await store.get("old");
+      await store.set("new1", 1);
+      await store.set("new2", 2);
+      expect(await store.get("old")).toBeUndefined();
+      expect(await store.get("new1")).toBe(1);
+      expect(await store.get("new2")).toBe(2);
+    });
+
+    it("counts a read as a use, without extending the ttl", async () => {
+      vi.useFakeTimers();
+      const store = new MemoryStore({ maxSize: 2 });
+      await store.set("a", 1, 1_000);
+      await store.set("b", 2);
+      vi.advanceTimersByTime(900);
+      expect(await store.get("a")).toBe(1);
+      await store.set("c", 3);
+      expect(await store.get("b")).toBeUndefined();
+      expect(await store.get("a")).toBe(1);
+      vi.advanceTimersByTime(100);
+      expect(await store.get("a")).toBeUndefined();
+    });
+  });
+
+  describe("pruning when full", () => {
+    it("doesn't scan the store when nothing has expired", async () => {
+      vi.useFakeTimers();
+      const store = new MemoryStore({ maxSize: 2 });
+      const prune = vi.spyOn(store, "prune");
+      for (let i = 0; i < 10; i++) await store.set(`k${i}`, i, 1_000);
+      expect(prune).not.toHaveBeenCalled();
+    });
+
+    it("removes entries that expire at different times", async () => {
+      vi.useFakeTimers();
+      const store = new MemoryStore({ maxSize: 3 });
+      await store.set("live", 1);
+      await store.set("later", 2, 2_000);
+      await store.set("sooner", 3, 1_000);
+      vi.advanceTimersByTime(1_000);
+      await store.set("x", 4);
+      expect(await store.get("live")).toBe(1);
+      expect(await store.get("later")).toBe(2);
+      await store.get("x");
+      vi.advanceTimersByTime(1_000);
+      await store.set("y", 5);
+      expect(await store.get("live")).toBe(1);
+      expect(await store.get("x")).toBe(4);
+      expect(await store.get("y")).toBe(5);
     });
   });
 
