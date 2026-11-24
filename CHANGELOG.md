@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-24
+
 ### Changed
 
 - A full store now evicts the least recently used key (LRU) instead of the least frequently used one. New keys are no longer evicted right away in favor of old popular ones.
@@ -72,7 +74,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - `MemoryStore` with `get`, `set`, `delete`, `clear` and `size`, and per-key TTL that is checked on read.
 
-[Unreleased]: https://github.com/ma-saoud/tiercache-memory/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/ma-saoud/tiercache-memory/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/ma-saoud/tiercache-memory/compare/v0.4.2...v0.5.0
 [0.4.2]: https://github.com/ma-saoud/tiercache-memory/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/ma-saoud/tiercache-memory/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/ma-saoud/tiercache-memory/compare/v0.3.1...v0.4.0

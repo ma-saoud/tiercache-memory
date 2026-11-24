@@ -1,7 +1,7 @@
 {
   "name": "@tiercache/memory",
   "version": "0.4.2",
-  "description": "In-memory store for tiercache: per-key TTL expiry, zero dependencies.",
+  "description": "Zero-dependency in-memory LRU cache for Node.js and TypeScript, with per-key TTL, a size limit and automatic cleanup of expired entries.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -22,6 +22,7 @@
   "keywords": [
     "tiercache",
     "cache",
+    "lru",
     "in-memory",
     "memory",
     "ttl",
